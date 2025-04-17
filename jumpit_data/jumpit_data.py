@@ -10,7 +10,7 @@ from selenium.webdriver.support import expected_conditions as EC
 
 def get_detail_info(driver_detail, link):
     driver_detail.get(link)
-    time.sleep(5)
+    time.sleep(2)
     
     # 회사명 추출 시도
     company = "회사명 추출 실패"
@@ -38,11 +38,6 @@ def get_detail_info(driver_detail, link):
         
         # 선택자로 찾지 못한 경우, 페이지 소스에서 회사명 찾기 시도
         if company == "회사명 추출 실패":
-            # 페이지 소스 확인
-            page_source = driver_detail.page_source
-            print("상세 페이지 HTML 일부:")
-            print(page_source[:1000])  # 처음 1000자만 출력
-            
             # 페이지의 모든 텍스트 요소 확인
             elements = driver_detail.find_elements(By.XPATH, "//*[text()]")
             print("\n상세 페이지의 모든 텍스트 요소:")
@@ -73,48 +68,61 @@ def get_detail_info(driver_detail, link):
     
     return detail_info
 
-job_list = []
-keyword = "백엔드개발자"
-base_url = "https://jumpit.saramin.co.kr"
+def scrape_jobs(keyword, job_category, title_keywords):
+    print(f"{job_category} 채용 정보 수집 시작 - 키워드: {keyword}")
+    job_list = []
+    base_url = "https://jumpit.saramin.co.kr"
 
-options = webdriver.ChromeOptions()
-options.add_argument("--window-size=1920,1080")
+    options = webdriver.ChromeOptions()
+    options.add_argument("--window-size=1920,1080")
 
-driver_main = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
-driver_detail = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
+    driver_main = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
+    driver_detail = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
 
-for page in range(1, 2):
-    print(f"백엔드 (한글+영어) - 페이지 {page}")
-    url = f"{base_url}/search?sort=relation&keyword={keyword}&page={page}"
-    driver_main.get(url)
-    time.sleep(5)
+    for page in range(1, 6):  # 원하는 페이지 범위로 수정 가능
+        print(f"{job_category} - 페이지 {page}")
+        url = f"{base_url}/search?sort=relation&keyword={keyword}&page={page}"
+        driver_main.get(url)
+        time.sleep(2)
 
-    cards = driver_main.find_elements(By.CSS_SELECTOR, "a[href^='/position/']")
-    print(f"찾은 카드 수: {len(cards)}")
+        cards = driver_main.find_elements(By.CSS_SELECTOR, "a[href^='/position/']")
+        print(f"찾은 카드 수: {len(cards)}")
 
-    for card in cards:
-        try:
-            # 제목만 카드에서 추출
+        for card in cards:
             try:
-                title_elem = card.find_element(By.CSS_SELECTOR, "h2.position_card_info_title")
-                title = title_elem.text.strip().replace("\n", " ")
-            except:
+                # 제목 추출
                 try:
-                    title_elem = card.find_element(By.TAG_NAME, "h2")
+                    title_elem = card.find_element(By.CSS_SELECTOR, "h2.position_card_info_title")
                     title = title_elem.text.strip().replace("\n", " ")
                 except:
-                    title = "제목 추출 실패"
-            
-            print(f"공고명: {title}")
-            
-            # 제목 필터링: '백엔드' or 'backend'
-            title_lower = title.lower()
-            if '백엔드' in title_lower or 'backend' in title_lower:
+                    try:
+                        title_elem = card.find_element(By.TAG_NAME, "h2")
+                        title = title_elem.text.strip().replace("\n", " ")
+                    except:
+                        title = "제목 추출 실패"
+                
+                print(f"공고명: {title}")
+                
+                # 제목 필터링: 검색 키워드에 따라 다름
+                title_lower = title.lower()
+                
+                # 키워드 필터링
+                matching_keyword = False
+                for kw in title_keywords:
+                    if kw in title_lower:
+                        matching_keyword = True
+                        break
+                
+                if not matching_keyword:
+                    continue  # 키워드가 제목에 없으면 건너뜀
+                
+                job_type = job_category
+                
                 href = card.get_attribute("href")
                 if not href.startswith("http"):
                     href = base_url + href
                 
-                # 기술 스택 카드에서 추출
+                # 기술 스택 추출
                 try:
                     skill_items = card.find_elements(By.CSS_SELECTOR, "ul.sc-15ba67b8-1.iFMgIl li")
                     skills = [skill.text.strip() for skill in skill_items]
@@ -134,24 +142,52 @@ for page in range(1, 2):
                 print(f"{company} / {title}")
                 job_list.append([
                     company,
-                    "백엔드 개발자",
+                    job_type,
                     title,
                     href,
                     ", ".join(skills),
                     main_task,
                     qualification
                 ])
-        
-        except Exception as e:
-            print(f"카드 처리 중 예외 발생: {e}")
+            
+            except Exception as e:
+                print(f"카드 처리 중 예외 발생: {e}")
 
-driver_main.quit()
-driver_detail.quit()
+    driver_main.quit()
+    driver_detail.quit()
+    return job_list
+
+# 메인 실행 코드
+all_jobs = []
+
+# 백엔드 개발자 채용 정보 수집
+backend_jobs = scrape_jobs(
+    "백엔드개발자", 
+    "백엔드 개발자", 
+    ['백엔드', 'backend', 'back-end', 'back end']
+)
+all_jobs.extend(backend_jobs)
+
+# 프론트엔드 개발자 채용 정보 수집
+frontend_jobs = scrape_jobs(
+    "프론트엔드개발자", 
+    "프론트엔드 개발자", 
+    ['프론트엔드', 'frontend', 'front-end', 'front end']
+)
+all_jobs.extend(frontend_jobs)
+
+# 풀스택 개발자 채용 정보 수집
+fullstack_jobs = scrape_jobs(
+    "풀스택개발자", 
+    "풀스택 개발자", 
+    ['풀스택', 'fullstack', 'full-stack', 'full stack']
+)
+all_jobs.extend(fullstack_jobs)
 
 # CSV 저장
-with open("jumpit_backend_data.csv", "w", newline="", encoding="utf-8-sig") as f:
+with open("jumpit_developer_jobs.csv", "w", newline="", encoding="utf-8-sig") as f:
     writer = csv.writer(f)
-    writer.writerow(["회사명", "공고", "제목", "링크", "기술 스택", "주요업무", "자격요건"])
-    writer.writerows(job_list)
+    writer.writerow(["회사명", "직무 구분", "공고명", "링크", "기술 스택", "주요업무", "자격요건"])
+    writer.writerows(all_jobs)
 
-print("백엔드(한글+영어) CSV 저장 완료: jumpit_backend_all.csv")
+print(f"총 {len(all_jobs)}개의 채용 정보 저장 완료: jumpit_developer_jobs.csv")
