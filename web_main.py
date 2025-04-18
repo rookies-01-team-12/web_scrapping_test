@@ -283,9 +283,7 @@ def setup_page():
         st.session_state.render_id = 0
     
     # 앱 제목
-    st.title("🚀 IT 채용정보 분석 대시보드")
-    st.write("이 대시보드는 CSV 파일 데이터를 기반으로 한 시각화 애플리케이션입니다.")
-
+    st.title("🚀 IT 채용정보 분석")
 
 def render_sidebar(data):
     st.sidebar.title("💻 검색 옵션")
@@ -471,7 +469,7 @@ def render_skill_analysis(data, filtered_df):
             
             # 기술 스택 선택용 셀렉트 박스 추가
             selected_skill = st.selectbox(
-                "기술 스택 추가",
+                "기술 스택 선택",
                 ["선택하세요..."] + skill_df["skill"].tolist(),
                 key="select_total"
             )
@@ -525,7 +523,7 @@ def render_skill_analysis(data, filtered_df):
             
             # 기술 스택 선택용 셀렉트 박스 추가
             selected_skill = st.selectbox(
-                "기술 스택 추가",
+                "기술 스택 선택",
                 ["선택하세요..."] + backend_skill_df["skill"].tolist(),
                 key="select_backend"
             )
@@ -579,7 +577,7 @@ def render_skill_analysis(data, filtered_df):
             
             # 기술 스택 선택용 셀렉트 박스 추가
             selected_skill = st.selectbox(
-                "기술 스택 추가",
+                "기술 스택 선택",
                 ["선택하세요..."] + frontend_skill_df["skill"].tolist(),
                 key="select_frontend"
             )
