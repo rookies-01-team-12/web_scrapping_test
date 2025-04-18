@@ -347,12 +347,13 @@ if df_total is not None:
         if df_back is not None and df_front is not None:
             stack_tab1, stack_tab2, stack_tab3 = st.tabs(["전체 기술 스택", "백엔드 기술 스택", "프론트엔드 기술 스택"])
 
-            for stack_tab, title, data_source, color in [
-                (stack_tab1, "전체 - 상위 15개 기술 스택", filtered_df, 'mediumseagreen'),
-                (stack_tab2, "백엔드 - 상위 15개 기술 스택", df_back, 'cornflowerblue'),
-                (stack_tab3, "프론트엔드 - 상위 15개 기술 스택", df_front, 'salmon')
-            ]:
-                with stack_tab:
+            stack_tabs = [stack_tab1, stack_tab2, stack_tab3]
+            titles = ["전체 - 상위 15개 기술 스택", "백엔드 - 상위 15개 기술 스택", "프론트엔드 - 상위 15개 기술 스택"]
+            data_sources = [filtered_df, df_back, df_front]
+            colors = ['mediumseagreen', 'cornflowerblue', 'salmon']
+
+            for tab, title, data_source, base_color in zip(stack_tabs, titles, data_sources, colors):
+                with tab:
                     skill_counts = count_skills(data_source, exclude_skills=excluded_skills)
                     skill_df = skill_counts.head(15).reset_index()
                     skill_df.columns = ['skill', 'count']
@@ -426,6 +427,7 @@ if df_total is not None:
                     st.plotly_chart(fig, use_container_width=True)
         else:
             st.info("백엔드 또는 프론트엔드 데이터 파일을 찾을 수 없습니다.")
+
 
     
     # 탭 4: 데이터 테이블
