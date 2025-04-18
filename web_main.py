@@ -630,7 +630,6 @@ if df_total is not None:
                     st.plotly_chart(fig, use_container_width=True)
         else:
             st.info("백엔드 또는 프론트엔드 데이터 파일을 찾을 수 없습니다.")
-    
     # 탭 4: 데이터 테이블
     with tab4:
         st.subheader("데이터 테이블")
