@@ -17,6 +17,7 @@ st.set_page_config(
 
 # 앱 제목
 st.title("🚀 IT 채용정보 분석 대시보드")
+st.write("이 대시보드는 CSV 파일 데이터를 기반으로 한 시각화 애플리케이션입니다.")
 
 # 사이드바
 st.sidebar.title("💻 검색 옵션")
@@ -81,7 +82,7 @@ df_total = load_data()
 df_back = load_backend_data()
 df_front = load_frontend_data()
 
-# 그래프 그리기 함수
+# 기존 그래프 그리기 함수 (plotly로 대체될 예정이지만 코드 유지)
 def draw_bar(data, df_name):
     figure, ax = plt.subplots()
     figure.set_size_inches(18, 10)
@@ -111,7 +112,7 @@ def draw_circle(data, df_name):
 
     # 원형 그래프 그리기 autopct=비율 표시, pctdistance=중앙으로부터 pct거리, startangle=시작 각도
     autotexts = ax.pie(data.values, labels=data.index, colors=colors, autopct=autopct_func, pctdistance=0.8,
-                        startangle=90, rotatelabels=False, textprops={'fontsize': 12})  # rotatelabels=False, labels=data.index 추가
+                      startangle=90, rotatelabels=False, textprops={'fontsize': 12})  # rotatelabels=False, labels=data.index 추가
     # 범례 위치 조정 및 겹침 방지
     ax.legend(data.index, ncol=3, loc='lower left', bbox_to_anchor=(0.0, 0.0), fontsize=10)
     ax.set_title(df_name, fontsize=20, x=0.5, y=1.05)  # 제목 위치 중앙으로 조정
@@ -120,6 +121,177 @@ def draw_circle(data, df_name):
     plt.tight_layout(rect=[0, 0.05, 1, 0.95])  # 범례와 제목이 겹치지 않도록 레이아웃 조정
     
     return figure
+
+# Plotly로 동적 막대 그래프 그리기 함수
+def draw_bar_plotly(data, title):
+    # 데이터프레임으로 변환
+    df = pd.DataFrame({'skill': data.index, 'count': data.values})
+    
+    # 애니메이션 효과를 위한 설정
+    fig = go.Figure()
+    
+    # 막대 그래프 트레이스 추가
+    fig.add_trace(go.Bar(
+        x=df['count'],
+        y=df['skill'],
+        orientation='h',
+        marker=dict(
+            color=df['count'],
+            colorscale='Viridis',
+            showscale=True,
+            colorbar=dict(title="빈도")
+        ),
+        text=df['count'],
+        textposition='outside',
+        texttemplate='%{text:,}',
+        hovertemplate='<b>%{y}</b><br>빈도: %{x:,}'
+    ))
+    
+    # 레이아웃 설정
+    fig.update_layout(
+        title={
+            'text': title,
+            'y':0.95,
+            'x':0.5,
+            'xanchor': 'center',
+            'yanchor': 'top'
+        },
+        xaxis_title='빈도',
+        yaxis_title='기술 스택',
+        yaxis={'categoryorder':'total ascending'},
+        height=600,
+        margin=dict(l=100, r=20, t=70, b=70),
+        # 애니메이션 효과 설정
+        updatemenus=[{
+            'type': 'buttons',
+            'buttons': [
+                {
+                    'label': '▶️ 애니메이션 재생',
+                    'method': 'animate',
+                    'args': [None, {'frame': {'duration': 500, 'redraw': True}, 'fromcurrent': True}]
+                }
+            ],
+            'direction': 'left',
+            'pad': {'r': 10, 't': 10},
+            'showactive': False,
+            'x': 0.1,
+            'y': 1.15,
+            'xanchor': 'right',
+            'yanchor': 'top'
+        }]
+    )
+    
+    # 애니메이션 프레임 설정
+    frames = []
+    for i in range(1, len(df) + 1):
+        subset = df.iloc[:i].copy()
+        frame = go.Frame(
+            data=[go.Bar(
+                x=subset['count'],
+                y=subset['skill'],
+                orientation='h',
+                marker=dict(
+                    color=subset['count'],
+                    colorscale='Viridis',
+                    showscale=True,
+                    colorbar=dict(title="빈도")
+                ),
+                text=subset['count'],
+                textposition='outside',
+                texttemplate='%{text:,}',
+                hovertemplate='<b>%{y}</b><br>빈도: %{x:,}'
+            )]
+        )
+        frames.append(frame)
+    
+    fig.frames = frames
+    
+    return fig
+
+# Plotly로 동적 원형 그래프 그리기 함수
+def draw_pie_plotly(data, title):
+    # 데이터프레임으로 변환
+    df = pd.DataFrame({'skill': data.index, 'count': data.values})
+    
+    # 애니메이션 효과를 위한 설정
+    fig = go.Figure()
+    
+    # 원형 그래프 트레이스 추가
+    fig.add_trace(go.Pie(
+        labels=df['skill'],
+        values=df['count'],
+        textinfo='percent+label',
+        insidetextorientation='radial',
+        textposition='inside',
+        hoverinfo='label+percent+value',
+        marker=dict(
+            colors=px.colors.qualitative.Vivid,
+            line=dict(color='#000000', width=1)
+        ),
+    ))
+    
+    # 레이아웃 설정
+    fig.update_layout(
+        title={
+            'text': title,
+            'y':0.95,
+            'x':0.5,
+            'xanchor': 'center',
+            'yanchor': 'top'
+        },
+        height=600,
+        margin=dict(l=20, r=20, t=70, b=70),
+        legend=dict(
+            orientation="h",
+            yanchor="bottom",
+            y=-0.3,
+            xanchor="center",
+            x=0.5
+        ),
+        # 애니메이션 효과 설정
+        updatemenus=[{
+            'type': 'buttons',
+            'buttons': [
+                {
+                    'label': '▶️ 애니메이션 재생',
+                    'method': 'animate',
+                    'args': [None, {'frame': {'duration': 500, 'redraw': True}, 'fromcurrent': True}]
+                }
+            ],
+            'direction': 'left',
+            'pad': {'r': 10, 't': 10},
+            'showactive': False,
+            'x': 0.1,
+            'y': 1.15,
+            'xanchor': 'right',
+            'yanchor': 'top'
+        }]
+    )
+    
+    # 애니메이션 프레임 설정
+    frames = []
+    # 순차적으로 조각을 추가하는 애니메이션
+    for i in range(1, len(df) + 1):
+        subset = df.iloc[:i].copy()
+        frame = go.Frame(
+            data=[go.Pie(
+                labels=subset['skill'],
+                values=subset['count'],
+                textinfo='percent+label',
+                insidetextorientation='radial',
+                textposition='inside',
+                hoverinfo='label+percent+value',
+                marker=dict(
+                    colors=px.colors.qualitative.Vivid[:i],
+                    line=dict(color='#000000', width=1)
+                ),
+            )]
+        )
+        frames.append(frame)
+    
+    fig.frames = frames
+    
+    return fig
 
 # skill row의 키워드 개수 count
 def count_skills(df, exclude_skills=None):
@@ -189,152 +361,177 @@ if df_total is not None:
     # 탭 생성
     tab1, tab2, tab3, tab4 = st.tabs(["📊 기업 분석", "🔍 직무 분석", "🧩 기술 스택 분석", "📋 데이터 테이블"])
     
+     # 탭 1: 기업 분석
     with tab1:
-        st.subheader("기업 채용 분석")
-
+        st.subheader("채용공고가 많은 상위 20개 기업")
+        
+        # 전체 기업 채용 공고 수 (상위 20개)
         company_counts = filtered_df['company'].value_counts().head(20).reset_index()
         company_counts.columns = ['company', 'count']
-
+        
         if not company_counts.empty:
-            with st.spinner("차트를 불러오는 중입니다..."):
-                import time
-                time.sleep(1)
-
-                animation_frames = []
-                for i in range(1, 11):
-                    current_values = (company_counts['count'] * (i / 10)).round(1)
-                    frame = go.Frame(
-                        data=[go.Bar(
-                            x=company_counts['company'],
-                            y=current_values,
-                            marker=dict(
-                                color=current_values,
-                                colorscale='Plasma'
-                            ),
-                            text=current_values.round(0).astype(int),
-                            textposition='outside',
-                        )],
-                        name=f'frame{i}'
-                    )
-                    animation_frames.append(frame)
-
-                fig = go.Figure(
+            # 애니메이션 프레임 설정
+            animation_frames = []
+            for i in range(1, 16):  # 15개 프레임
+                subset = company_counts.copy()
+                subset['animated_count'] = (subset['count'] * (i / 15)).round(1)
+                frame = go.Frame(
                     data=[go.Bar(
-                        x=company_counts['company'],
-                        y=[0] * len(company_counts),
+                        x=subset['company'],
+                        y=subset['animated_count'], 
                         marker=dict(
-                            color=[0] * len(company_counts),
-                            colorscale='Plasma'
+                            color=subset['animated_count'],
+                            colorscale='Plasma',
+                            showscale=True,
+                            colorbar=dict(title="채용공고 수")
                         ),
-                        text=[0] * len(company_counts),
+                        text=subset['animated_count'].round(0).astype(int),
                         textposition='outside',
+                        hovertemplate='<b>%{x}</b><br>채용공고 수: %{y:,}'
                     )],
-                    layout=go.Layout(
-                        title={
-                            'text': '채용공고가 많은 상위 20개 기업',
-                            'x': 0.5,
-                            'xanchor': 'center',
-                            'y': 0.95,
-                            'yanchor': 'top'
-                        },
-                        xaxis_title='기업명',
-                        yaxis_title='공고 수',
-                        height=600,
-                        margin=dict(l=50, r=50, t=100, b=100),
-                        updatemenus=[dict(
-                            type='buttons',
-                            showactive=False,
-                            buttons=[dict(label='▶️ Play', method='animate', args=[None])],
-                            x=0.1,
-                            y=0.9,
-                            xanchor='left',
-                            yanchor='middle'
-                        )]
+                    name=f'frame{i}'
+                )
+                animation_frames.append(frame)
+            
+            # 처음에는 빈 값으로 시작
+            empty_y = [0] * len(company_counts)
+            fig = go.Figure(
+                data=[go.Bar(
+                    x=company_counts['company'],
+                    y=empty_y,
+                    marker=dict(
+                        color=empty_y,
+                        colorscale='Plasma',
+                        showscale=True,
+                        colorbar=dict(title="채용공고 수")
                     ),
-                    frames=animation_frames
+                    text=empty_y,
+                    textposition='outside',
+                    hovertemplate='<b>%{x}</b><br>채용공고 수: %{y:,}'
+                )],
+                layout=go.Layout(
+                    xaxis_title='기업',
+                    yaxis_title='채용공고 수',
+                    height=600,
+                    margin=dict(l=20, r=20, t=70, b=100),
+                    updatemenus=[{
+                        'type': 'buttons',
+                        'buttons': [
+                            {
+                                'label': '▶️ 그래프 표시',
+                                'method': 'animate',
+                                'args': [None, {'frame': {'duration': 100, 'redraw': True}, 'fromcurrent': True, 'mode': 'immediate'}]
+                            }
+                        ],
+                        'direction': 'left',
+                        'pad': {'r': 10, 't': 10},
+                        'showactive': False,
+                        'x': 0.5,
+                        'y': 1.15,
+                        'xanchor': 'center',
+                        'yanchor': 'top'
+                    }]
+                ),
+                frames=animation_frames
+            )
+            
+            # y축 범위 설정 (최대값의 1.1배까지)
+            ymax = max(company_counts['count']) * 1.1
+            fig.update_layout(yaxis_range=[0, ymax])
+            
+            # x축 레이블 설정
+            fig.update_layout(
+                xaxis=dict(
+                    tickangle=-45
                 )
-
-                ymax = max(company_counts['count']) * 1.1
-                fig.update_layout(yaxis_range=[0, ymax])
-                fig.update_layout(
-                    xaxis=dict(
-                        tickangle=-45,
-                        tickmode='array',
-                        tickvals=company_counts['company']
-                    )
-                )
-
-                st.plotly_chart(fig, use_container_width=True)
+            )
+            
+            st.plotly_chart(fig, use_container_width=True)
         else:
             st.info("필터링된 데이터가 없습니다.")
-
-
+    
+    # 탭 2: 직무 분석
     with tab2:
-        st.subheader("직무 분석")
-
+        st.subheader("상위 20개 직무")
+        
+        # 직무명(position) 열의 상위 빈도 항목 출력
         position_counts = filtered_df['position'].value_counts().head(20).reset_index()
         position_counts.columns = ['position', 'count']
-
+        
         if not position_counts.empty:
-            with st.spinner("차트를 불러오는 중입니다..."):
-                import time
-                time.sleep(1)
-
-                animation_frames = []
-                for i in range(1, 11):
-                    current_values = (position_counts['count'] * (i / 10)).round(1)
-                    frame = go.Frame(
-                        data=[go.Bar(
-                            y=position_counts['position'],
-                            x=current_values,
-                            orientation='h',
-                            marker=dict(
-                                color=current_values,
-                                colorscale='Viridis'
-                            ),
-                            text=current_values.round(0).astype(int),
-                            textposition='outside',
-                        )],
-                        name=f'frame{i}'
-                    )
-                    animation_frames.append(frame)
-
-                fig = go.Figure(
+            # 애니메이션 프레임 설정
+            animation_frames = []
+            for i in range(1, 16):  # 15개 프레임
+                subset = position_counts.copy()
+                subset['animated_count'] = (subset['count'] * (i / 15)).round(1)
+                frame = go.Frame(
                     data=[go.Bar(
-                        y=position_counts['position'],
-                        x=[0] * len(position_counts),
+                        x=subset['animated_count'],
+                        y=subset['position'],
                         orientation='h',
                         marker=dict(
-                            color=[0] * len(position_counts),
-                            colorscale='Viridis'
+                            color=subset['animated_count'],
+                            colorscale='Viridis',
+                            showscale=True,
+                            colorbar=dict(title="채용공고 수")
                         ),
-                        text=[0] * len(position_counts),
+                        text=subset['animated_count'].round(0).astype(int),
                         textposition='outside',
+                        hovertemplate='<b>%{y}</b><br>채용공고 수: %{x:,}'
                     )],
-                    layout=go.Layout(
-                        title='상위 20개 직무',
-                        xaxis_title='공고 수',
-                        yaxis_title='직무명',
-                        yaxis=dict(categoryorder='total ascending'),
-                        height=800,
-                        margin=dict(l=200, r=100, t=80, b=80),
-                        updatemenus=[dict(
-                            type='buttons',
-                            showactive=False,
-                            buttons=[dict(label='▶️ Play', method='animate', args=[None])],
-                            x=0.1,
-                            y=1.1,
-                            xanchor='left',
-                            yanchor='top'
-                        )]
-                    ),
-                    frames=animation_frames
+                    name=f'frame{i}'
                 )
-
-                xmax = max(position_counts['count']) * 1.1
-                fig.update_layout(xaxis_range=[0, xmax])
-
-                st.plotly_chart(fig, use_container_width=True)
+                animation_frames.append(frame)
+            
+            # 처음에는 빈 값으로 시작
+            empty_x = [0] * len(position_counts)
+            fig = go.Figure(
+                data=[go.Bar(
+                    x=empty_x,
+                    y=position_counts['position'],
+                    orientation='h',
+                    marker=dict(
+                        color=empty_x,
+                        colorscale='Viridis',
+                        showscale=True,
+                        colorbar=dict(title="채용공고 수")
+                    ),
+                    text=empty_x,
+                    textposition='outside',
+                    hovertemplate='<b>%{y}</b><br>채용공고 수: %{x:,}'
+                )],
+                layout=go.Layout(
+                    xaxis_title='채용공고 수',
+                    yaxis_title='직무',
+                    yaxis={'categoryorder':'total ascending'},
+                    height=600,
+                    margin=dict(l=150, r=20, t=70, b=70),
+                    updatemenus=[{
+                        'type': 'buttons',
+                        'buttons': [
+                            {
+                                'label': '▶️ 그래프 표시',
+                                'method': 'animate',
+                                'args': [None, {'frame': {'duration': 100, 'redraw': True}, 'fromcurrent': True, 'mode': 'immediate'}]
+                            }
+                        ],
+                        'direction': 'left',
+                        'pad': {'r': 10, 't': 10},
+                        'showactive': False,
+                        'x': 0.5,
+                        'y': 1.15,
+                        'xanchor': 'center',
+                        'yanchor': 'top'
+                    }]
+                ),
+                frames=animation_frames
+            )
+            
+            # x축 범위 설정 (최대값의 1.1배까지)
+            xmax = max(position_counts['count']) * 1.1
+            fig.update_layout(xaxis_range=[0, xmax])
+            
+            st.plotly_chart(fig, use_container_width=True)
         else:
             st.info("필터링된 데이터가 없습니다.")
     
@@ -360,9 +557,10 @@ if df_total is not None:
 
                     st.subheader(title)
 
+                    # 애니메이션 프레임 설정
                     animation_frames = []
-                    for i in range(1, 11):
-                        current_values = (skill_df['count'] * (i / 10)).round(1)
+                    for i in range(1, 16):  # 15개 프레임
+                        current_values = (skill_df['count'] * (i / 15)).round(1)
                         frame = go.Frame(
                             data=[go.Bar(
                                 x=skill_df['skill'],
@@ -373,49 +571,54 @@ if df_total is not None:
                                 ),
                                 text=current_values.round(0).astype(int),
                                 textposition='outside',
+                                hovertemplate='<b>%{x}</b><br>빈도: %{y:,}'
                             )],
                             name=f'frame{i}'
                         )
                         animation_frames.append(frame)
 
+                    # 처음에는 값이 0인 빈 바 차트로 시작
+                    empty_y = [0] * len(skill_df)
                     fig = go.Figure(
                         data=[go.Bar(
                             x=skill_df['skill'],
-                            y=[0] * len(skill_df),
+                            y=empty_y,  # 빈 값으로 시작
                             marker=dict(
-                                color=[0] * len(skill_df),
+                                color=empty_y,
                                 colorscale='Plasma'
                             ),
-                            text=[0] * len(skill_df),
+                            text=empty_y,
                             textposition='outside',
+                            hovertemplate='<b>%{x}</b><br>빈도: %{y:,}'
                         )],
                         layout=go.Layout(
-                            title={
-                                'text': title,
-                                'x': 0.5,
-                                'xanchor': 'center',
-                                'y': 0.95,
-                                'yanchor': 'top'
-                            },
                             xaxis_title='기술 스택',
                             yaxis_title='언급 빈도수',
                             height=600,
-                            margin=dict(l=50, r=50, t=100, b=100),
+                            margin=dict(l=50, r=50, t=100, b=70),
+                            # 애니메이션 버튼
                             updatemenus=[dict(
                                 type='buttons',
                                 showactive=False,
-                                buttons=[dict(label='▶️ Play', method='animate', args=[None])],
-                                x=0.1,
-                                y=0.9,
-                                xanchor='left',
-                                yanchor='middle'
+                                buttons=[dict(
+                                    label='▶️ 그래프 표시',
+                                    method='animate',
+                                    args=[None, {'frame': {'duration': 100, 'redraw': True}, 'fromcurrent': True, 'mode': 'immediate'}]
+                                )],
+                                x=0.5,
+                                y=1.15,
+                                xanchor='center',
+                                yanchor='top'
                             )]
                         ),
                         frames=animation_frames
                     )
 
+                    # y축 범위 설정 (최대값의 1.1배까지)
                     ymax = max(skill_df['count']) * 1.1
                     fig.update_layout(yaxis_range=[0, ymax])
+                    
+                    # x축 레이블 설정
                     fig.update_layout(
                         xaxis=dict(
                             tickangle=-45,
@@ -427,8 +630,6 @@ if df_total is not None:
                     st.plotly_chart(fig, use_container_width=True)
         else:
             st.info("백엔드 또는 프론트엔드 데이터 파일을 찾을 수 없습니다.")
-
-
     
     # 탭 4: 데이터 테이블
     with tab4:
