@@ -17,7 +17,6 @@ st.set_page_config(
 
 # 앱 제목
 st.title("🚀 IT 채용정보 분석 대시보드")
-st.write("이 대시보드는 CSV 파일 데이터를 기반으로 한 시각화 애플리케이션입니다.")
 
 # 사이드바
 st.sidebar.title("💻 검색 옵션")
@@ -112,7 +111,7 @@ def draw_circle(data, df_name):
 
     # 원형 그래프 그리기 autopct=비율 표시, pctdistance=중앙으로부터 pct거리, startangle=시작 각도
     autotexts = ax.pie(data.values, labels=data.index, colors=colors, autopct=autopct_func, pctdistance=0.8,
-                      startangle=90, rotatelabels=False, textprops={'fontsize': 12})  # rotatelabels=False, labels=data.index 추가
+                        startangle=90, rotatelabels=False, textprops={'fontsize': 12})  # rotatelabels=False, labels=data.index 추가
     # 범례 위치 조정 및 겹침 방지
     ax.legend(data.index, ncol=3, loc='lower left', bbox_to_anchor=(0.0, 0.0), fontsize=10)
     ax.set_title(df_name, fontsize=20, x=0.5, y=1.05)  # 제목 위치 중앙으로 조정
@@ -201,176 +200,232 @@ if df_total is not None:
                 import time
                 time.sleep(1)
 
-                # 애니메이션 프레임 생성
                 animation_frames = []
                 for i in range(1, 11):
+                    current_values = (company_counts['count'] * (i / 10)).round(1)
                     frame = go.Frame(
                         data=[go.Bar(
                             x=company_counts['company'],
-                            y=(company_counts['count'] * (i / 10)).round(1),
-                            marker_color='indigo')],
+                            y=current_values,
+                            marker=dict(
+                                color=current_values,
+                                colorscale='Plasma'
+                            ),
+                            text=current_values.round(0).astype(int),
+                            textposition='outside',
+                        )],
                         name=f'frame{i}'
                     )
                     animation_frames.append(frame)
 
-                # 초기 빈 차트
                 fig = go.Figure(
-                    data=[go.Bar(x=company_counts['company'], y=[0] * len(company_counts), marker_color='indigo')],
+                    data=[go.Bar(
+                        x=company_counts['company'],
+                        y=[0] * len(company_counts),
+                        marker=dict(
+                            color=[0] * len(company_counts),
+                            colorscale='Plasma'
+                        ),
+                        text=[0] * len(company_counts),
+                        textposition='outside',
+                    )],
                     layout=go.Layout(
-                        title='채용공고가 많은 상위 20개 기업',
+                        title={
+                            'text': '채용공고가 많은 상위 20개 기업',
+                            'x': 0.5,
+                            'xanchor': 'center',
+                            'y': 0.95,
+                            'yanchor': 'top'
+                        },
                         xaxis_title='기업명',
                         yaxis_title='공고 수',
+                        height=600,
+                        margin=dict(l=50, r=50, t=100, b=100),
                         updatemenus=[dict(
                             type='buttons',
                             showactive=False,
-                            buttons=[dict(label='▶️ Play', method='animate', args=[None])]
+                            buttons=[dict(label='▶️ Play', method='animate', args=[None])],
+                            x=0.1,
+                            y=0.9,
+                            xanchor='left',
+                            yanchor='middle'
                         )]
                     ),
                     frames=animation_frames
+                )
+
+                ymax = max(company_counts['count']) * 1.1
+                fig.update_layout(yaxis_range=[0, ymax])
+                fig.update_layout(
+                    xaxis=dict(
+                        tickangle=-45,
+                        tickmode='array',
+                        tickvals=company_counts['company']
+                    )
                 )
 
                 st.plotly_chart(fig, use_container_width=True)
         else:
             st.info("필터링된 데이터가 없습니다.")
 
-    
-    # 탭 2: 직무 분석
+
     with tab2:
         st.subheader("직무 분석")
-        
-        # 직무명(position) 열의 상위 빈도 항목 출력
+
         position_counts = filtered_df['position'].value_counts().head(20).reset_index()
         position_counts.columns = ['position', 'count']
-        
+
         if not position_counts.empty:
-            fig = px.bar(
-                position_counts,
-                x='count',
-                y='position',
-                orientation='h',
-                color='count',
-                color_continuous_scale='Viridis',
-                title='상위 20개 직무'
-            )
-            fig.update_layout(yaxis={'categoryorder':'total ascending'})
-            st.plotly_chart(fig, use_container_width=True)
+            with st.spinner("차트를 불러오는 중입니다..."):
+                import time
+                time.sleep(1)
+
+                animation_frames = []
+                for i in range(1, 11):
+                    current_values = (position_counts['count'] * (i / 10)).round(1)
+                    frame = go.Frame(
+                        data=[go.Bar(
+                            y=position_counts['position'],
+                            x=current_values,
+                            orientation='h',
+                            marker=dict(
+                                color=current_values,
+                                colorscale='Viridis'
+                            ),
+                            text=current_values.round(0).astype(int),
+                            textposition='outside',
+                        )],
+                        name=f'frame{i}'
+                    )
+                    animation_frames.append(frame)
+
+                fig = go.Figure(
+                    data=[go.Bar(
+                        y=position_counts['position'],
+                        x=[0] * len(position_counts),
+                        orientation='h',
+                        marker=dict(
+                            color=[0] * len(position_counts),
+                            colorscale='Viridis'
+                        ),
+                        text=[0] * len(position_counts),
+                        textposition='outside',
+                    )],
+                    layout=go.Layout(
+                        title='상위 20개 직무',
+                        xaxis_title='공고 수',
+                        yaxis_title='직무명',
+                        yaxis=dict(categoryorder='total ascending'),
+                        height=800,
+                        margin=dict(l=200, r=100, t=80, b=80),
+                        updatemenus=[dict(
+                            type='buttons',
+                            showactive=False,
+                            buttons=[dict(label='▶️ Play', method='animate', args=[None])],
+                            x=0.1,
+                            y=1.1,
+                            xanchor='left',
+                            yanchor='top'
+                        )]
+                    ),
+                    frames=animation_frames
+                )
+
+                xmax = max(position_counts['count']) * 1.1
+                fig.update_layout(xaxis_range=[0, xmax])
+
+                st.plotly_chart(fig, use_container_width=True)
         else:
             st.info("필터링된 데이터가 없습니다.")
     
     # 탭 3: 기술 스택 분석
     with tab3:
         st.subheader("기술 스택 분석")
-        
-        # 제외할 스킬 목록 정의
+
         excluded_skills = ['AI', 'UI', 'UIUX', 'NATIVE', 'BOOT', 'API', 'WEB', 'SW']
-        
+
         if df_back is not None and df_front is not None:
-            # 스택별 분석을 위한 서브 탭
             stack_tab1, stack_tab2, stack_tab3 = st.tabs(["전체 기술 스택", "백엔드 기술 스택", "프론트엔드 기술 스택"])
-            
-            with stack_tab1:
-                total_skill_counts = count_skills(filtered_df, exclude_skills=excluded_skills)
-                skill_df = total_skill_counts.head(15).reset_index()
-                skill_df.columns = ['skill', 'count']
 
-                st.subheader("전체 데이터 상위 기술 스택")
+            for stack_tab, title, data_source, color in [
+                (stack_tab1, "전체 - 상위 15개 기술 스택", filtered_df, 'mediumseagreen'),
+                (stack_tab2, "백엔드 - 상위 15개 기술 스택", df_back, 'cornflowerblue'),
+                (stack_tab3, "프론트엔드 - 상위 15개 기술 스택", df_front, 'salmon')
+            ]:
+                with stack_tab:
+                    skill_counts = count_skills(data_source, exclude_skills=excluded_skills)
+                    skill_df = skill_counts.head(15).reset_index()
+                    skill_df.columns = ['skill', 'count']
 
-                frames = []
-                for i in range(1, 11):
-                    frames.append(go.Frame(
+                    st.subheader(title)
+
+                    animation_frames = []
+                    for i in range(1, 11):
+                        current_values = (skill_df['count'] * (i / 10)).round(1)
+                        frame = go.Frame(
+                            data=[go.Bar(
+                                x=skill_df['skill'],
+                                y=current_values,
+                                marker=dict(
+                                    color=current_values,
+                                    colorscale='Plasma'
+                                ),
+                                text=current_values.round(0).astype(int),
+                                textposition='outside',
+                            )],
+                            name=f'frame{i}'
+                        )
+                        animation_frames.append(frame)
+
+                    fig = go.Figure(
                         data=[go.Bar(
                             x=skill_df['skill'],
-                            y=(skill_df['count'] * (i / 10)).round(1),
-                            marker_color='mediumseagreen')],
-                        name=f'frame{i}'
-                    ))
+                            y=[0] * len(skill_df),
+                            marker=dict(
+                                color=[0] * len(skill_df),
+                                colorscale='Plasma'
+                            ),
+                            text=[0] * len(skill_df),
+                            textposition='outside',
+                        )],
+                        layout=go.Layout(
+                            title={
+                                'text': title,
+                                'x': 0.5,
+                                'xanchor': 'center',
+                                'y': 0.95,
+                                'yanchor': 'top'
+                            },
+                            xaxis_title='기술 스택',
+                            yaxis_title='언급 빈도수',
+                            height=600,
+                            margin=dict(l=50, r=50, t=100, b=100),
+                            updatemenus=[dict(
+                                type='buttons',
+                                showactive=False,
+                                buttons=[dict(label='▶️ Play', method='animate', args=[None])],
+                                x=0.1,
+                                y=0.9,
+                                xanchor='left',
+                                yanchor='middle'
+                            )]
+                        ),
+                        frames=animation_frames
+                    )
 
-                fig = go.Figure(
-                    data=[go.Bar(x=skill_df['skill'], y=[0]*len(skill_df), marker_color='mediumseagreen')],
-                    layout=go.Layout(
-                        title='전체 - 상위 15개 기술 스택',
-                        xaxis_title='기술 스택',
-                        yaxis_title='언급 빈도수',
-                        updatemenus=[dict(
-                            type='buttons',
-                            showactive=False,
-                            buttons=[dict(label='▶️ Play', method='animate', args=[None])]
-                        )]
-                    ),
-                    frames=frames
-                )
+                    ymax = max(skill_df['count']) * 1.1
+                    fig.update_layout(yaxis_range=[0, ymax])
+                    fig.update_layout(
+                        xaxis=dict(
+                            tickangle=-45,
+                            tickmode='array',
+                            tickvals=skill_df['skill']
+                        )
+                    )
 
-                st.plotly_chart(fig, use_container_width=True)
-
-            
-            with stack_tab2:
-                backend_skill_counts = count_skills(df_back, exclude_skills=excluded_skills)
-                skill_df = backend_skill_counts.head(15).reset_index()
-                skill_df.columns = ['skill', 'count']
-
-                st.subheader("백엔드 직무 상위 기술 스택")
-
-                frames = []
-                for i in range(1, 11):
-                    frames.append(go.Frame(
-                        data=[go.Bar(
-                            x=skill_df['skill'],
-                            y=(skill_df['count'] * (i / 10)).round(1),
-                            marker_color='cornflowerblue')],
-                        name=f'frame{i}'
-                    ))
-
-                fig = go.Figure(
-                    data=[go.Bar(x=skill_df['skill'], y=[0]*len(skill_df), marker_color='cornflowerblue')],
-                    layout=go.Layout(
-                        title='백엔드 - 상위 15개 기술 스택',
-                        xaxis_title='기술 스택',
-                        yaxis_title='언급 빈도수',
-                        updatemenus=[dict(
-                            type='buttons',
-                            showactive=False,
-                            buttons=[dict(label='▶️ Play', method='animate', args=[None])]
-                        )]
-                    ),
-                    frames=frames
-                )
-
-                st.plotly_chart(fig, use_container_width=True)
-
-            
-            with stack_tab3:
-                frontend_skill_counts = count_skills(df_front, exclude_skills=excluded_skills)
-                skill_df = frontend_skill_counts.head(15).reset_index()
-                skill_df.columns = ['skill', 'count']
-
-                st.subheader("프론트엔드 직무 상위 기술 스택")
-
-                frames = []
-                for i in range(1, 11):
-                    frames.append(go.Frame(
-                        data=[go.Bar(
-                            x=skill_df['skill'],
-                            y=(skill_df['count'] * (i / 10)).round(1),
-                            marker_color='salmon')],
-                        name=f'frame{i}'
-                    ))
-
-                fig = go.Figure(
-                    data=[go.Bar(x=skill_df['skill'], y=[0]*len(skill_df), marker_color='salmon')],
-                    layout=go.Layout(
-                        title='프론트엔드 - 상위 15개 기술 스택',
-                        xaxis_title='기술 스택',
-                        yaxis_title='언급 빈도수',
-                        updatemenus=[dict(
-                            type='buttons',
-                            showactive=False,
-                            buttons=[dict(label='▶️ Play', method='animate', args=[None])]
-                        )]
-                    ),
-                    frames=frames
-                )
-
-                st.plotly_chart(fig, use_container_width=True)
+                    st.plotly_chart(fig, use_container_width=True)
+        else:
+            st.info("백엔드 또는 프론트엔드 데이터 파일을 찾을 수 없습니다.")
 
     
     # 탭 4: 데이터 테이블
